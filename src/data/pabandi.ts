@@ -149,3 +149,19 @@ export const PABANDI: PabandiCard[] = [
 export const SPEECH_KINDS: PabandiKind[] = ['word', 'letter', 'limit']
 /** Kinds that need people to watch. */
 export const PHYSICAL_KINDS: PabandiKind[] = ['body', 'after', 'guessers']
+
+/**
+ * Each team is dealt one card from every slot, in toll order: a physical action first (instant
+ * laughs), then a performance, then a speech rule (hardest, saved for the final stretch).
+ */
+export const DEAL_SLOTS: PabandiKind[][] = [
+  ['body', 'after'],
+  ['voice', 'guessers'],
+  ['word', 'letter', 'limit'],
+]
+
+/** Too dull or too brutal to hand out at random; they stay in the deck file for custom games. */
+export const NOT_DEALT = new Set([
+  'w-the', 'w-it', 'w-is', 'w-and', 'w-this', 'w-not', 'w-what', 'w-can', 'w-have', 'w-one',
+  'w-person', 'w-big', 'w-good', 'w-when', 'l-short', 'c-pause', 'c-nopoint', 'c-rhyme', 'g-captain',
+])

@@ -26,9 +26,6 @@ interface Store {
   movePlayer: (id: string) => void
   updateSettings: (patch: Partial<E.Settings>) => void
   startSetupPlay: () => void
-  toggleDraftPick: (id: string) => void
-  redealDraft: () => void
-  lockDraft: () => void
   beginTurn: () => void
   useJugaad: (cardId: string | null) => void
   startTurn: () => void
@@ -77,9 +74,6 @@ export const useGame = create<Store>()(
         movePlayer: (id) => apply((g) => E.movePlayer(g, id)),
         updateSettings: (patch) => apply((g) => E.updateSettings(g, patch)),
         startSetupPlay: () => apply((g) => E.startSetupPlay(g, rng)),
-        toggleDraftPick: (id) => apply((g) => E.toggleDraftPick(g, id)),
-        redealDraft: () => apply((g) => E.redealDraft(g, rng)),
-        lockDraft: () => apply((g) => E.lockDraft(g, rng)),
         beginTurn: () => apply(E.beginTurn),
         useJugaad: (cardId) => apply((g) => E.useJugaad(g, cardId)),
         startTurn: () => { sfx.go(); apply((g) => E.startTurn(g, now(), rng)) },
@@ -115,8 +109,11 @@ export const useGame = create<Store>()(
       // A reload mid-turn comes back with the clock paused.
       merge: (persisted, current) => {
         if (import.meta.env.DEV) (window as unknown as { umb: unknown }).umb = { get: () => useGame.getState(), engine: E }
-        const g = (persisted as { game?: E.Game } | undefined)?.game
-        if (!g) return current
+        const saved = (persisted as { game?: E.Game & { draft?: unknown } } | undefined)?.game
+        if (!saved) return current
+        // Games saved before the random Pabandi deal may be parked on the old draft screen.
+        const { draft: _old, ...g } = saved
+        if ((g.phase as string) === 'draft') return { ...current, game: { ...E.newGame(), players: g.players, settings: g.settings, teams: g.teams, phase: 'fillers' } }
         const turn = g.turn && g.turn.runningSince !== null
           ? { ...g.turn, remainingMs: E.remainingMs(g.turn, Date.now()), runningSince: null }
           : g.turn

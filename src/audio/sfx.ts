@@ -203,12 +203,11 @@ export const sfx = {
     tone(ac, master(ac, 0.5), { type: 'triangle', freq: 900, to: 400, dur: 0.18, gain: 0.25 })
   },
 
-  /** Three rising beeps before the clock starts. */
+  /** Bright "GO!" chime after the 3-2-1 countdown, as the clock starts. */
   go() {
     const ac = audio(); if (!ac) return
     const out = master(ac, 0.6)
-    tone(ac, out, { type: 'square', freq: 660, start: 0, dur: 0.1, gain: 0.12 })
-    tone(ac, out, { type: 'square', freq: 660, start: 0.18, dur: 0.1, gain: 0.12 })
-    tone(ac, out, { type: 'square', freq: 990, start: 0.36, dur: 0.22, gain: 0.14 })
+    tone(ac, out, { type: 'square', freq: 990, dur: 0.25, gain: 0.14 })
+    tone(ac, out, { type: 'triangle', freq: 1480, start: 0.02, dur: 0.35, gain: 0.12 })
   },
 }

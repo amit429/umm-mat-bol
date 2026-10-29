@@ -24,8 +24,8 @@
 | Home | Teams | Brain-fart words |
 | :---: | :---: | :---: |
 | <img src="docs/screenshots/01-home.jpg" width="240" alt="Home screen" /> | <img src="docs/screenshots/02-teams.jpg" width="240" alt="Team Mirchi vs Team Nimbu" /> | <img src="docs/screenshots/03-fillers.jpg" width="240" alt="Pick filler words in English, Hindi and Marathi" /> |
-| **Secret Pabandi draft** | **Road to Goa** | **Live turn** |
-| <img src="docs/screenshots/04-draft.jpg" width="240" alt="Plant Pabandi cards on the rival team" /> | <img src="docs/screenshots/05-board.jpg" width="240" alt="Two-lane board with Toll Nakas and the Ghat Section" /> | <img src="docs/screenshots/06-turn.jpg" width="240" alt="Describer sees Nervous + Samosa with the chai timer" /> |
+| **Pass the phone** | **Road to Goa** | **Live turn** |
+| <img src="docs/screenshots/04-pass.jpg" width="240" alt="Pass the phone to the Describer, tap to start" /> | <img src="docs/screenshots/05-board.jpg" width="240" alt="Two-lane board with Toll Nakas and the Ghat Section" /> | <img src="docs/screenshots/06-turn.jpg" width="240" alt="Describer sees Nervous + Samosa with the chai timer" /> |
 | **SEETI!** | **Toll Naka** | **Winner** |
 | <img src="docs/screenshots/07-seeti.jpg" width="240" alt="Pressure-cooker seeti for a slip" /> | <img src="docs/screenshots/08-toll.jpg" width="240" alt="A Pabandi card unlocks at a Toll Naka" /> | <img src="docs/screenshots/09-winner.jpg" width="240" alt="Welcome to Goa winner screen with awards" /> |
 
@@ -36,7 +36,7 @@
 3. **Race the chai timer.** Get your team to say both words, in order, within 45 seconds. Each combo moves you one stop closer to Goa; then grab the next pair.
 4. **Never brain-fart.** It's not just umm: uhh, err, hmm and every filler on your group's list (*like, basically, matlab, mhanje…*) is a slip. So is saying any part of a card word.
 5. **SEETI!** The other team listens. Catch a slip and they move one stop forward instead.
-6. **Pay at the Toll Nakas.** Before the game, each team secretly plants Pabandi cards (house rules) on the other. Reach a Toll Naka and your next Pabandi unlocks for the rest of the game.
+6. **Pay at the Toll Nakas.** Each team is secretly dealt three Pabandi cards (house rules). Reach a Toll Naka and your next one unlocks for the rest of the game.
 7. **Survive the Ghat Section.** On the last three stops, a slip also slides you back one stop.
 8. **First to Goa wins.** *Goa pahunch gaye!*
 
@@ -53,7 +53,7 @@
 ## What's inside
 
 - **340 describing words × 438 things** in three packs (Classic, Desi Tadka, Bollywood): about 149,000 combos, plus a Family-safe switch.
-- **107 Pabandi cards** in seven kinds: banned words (*THE, NO NUMBERS, ENGLISH ONLY*), banned letters, talk-like voices (*news anchor, cricket commentator, filmy villain, GPS voice*), body rules (*naagin hands, kaan pakdo*), after-every-guess actions (*"Jai Ho!", truck-horn honk*), clue rules (*end every sentence with "ji"*) and guesser rules (*sing your guesses*). The draft deals balanced hands so no team gets an unplayable stack.
+- **107 Pabandi cards** in seven kinds: banned words (*THE, NO NUMBERS, ENGLISH ONLY*), banned letters, talk-like voices (*news anchor, cricket commentator, filmy villain, GPS voice*), body rules (*naagin hands, kaan pakdo*), after-every-guess actions (*"Jai Ho!", truck-horn honk*), clue rules (*end every sentence with "ji"*) and guesser rules (*sing your guesses*). Each team is dealt three at random, in toll order: always a physical action first, then a performance, then a speech rule. The two teams never share a card, and the dullest cards are never dealt.
 - **Brain-fart starter lists in English, Hindi and Marathi**, plus your own words for any language.
 - **Sounds synthesized live** with the Web Audio API: pressure-cooker whistle, temple-bell ding, truck horn, ticking clock, toll drum roll, dhol fanfare. No audio files.
 - **Offline PWA:** add it to your home screen and play anywhere. The game saves itself; a reload mid-turn comes back paused.

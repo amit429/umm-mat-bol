@@ -1,12 +1,12 @@
 import { useState } from 'react'
 import { motion } from 'motion/react'
 import { useGame } from '../game/store'
-import { cardById, rival, type TeamId } from '../game/engine'
+import { rival, type TeamId } from '../game/engine'
 import { PACKS, type PackId } from '../data/words'
 import { CORE_FILLERS, FILLER_LANGS } from '../data/fillers'
-import { Btn, Chip, Footer, Header, Screen, Segmented, Stamp, Toggle } from '../ui/kit'
+import { Btn, Chip, Footer, Header, Screen, Segmented, Toggle } from '../ui/kit'
 import { Charm, TeamEmblem } from '../ui/art'
-import { IconArrow, IconEyeOff, IconLock, IconPlus, IconShuffle, IconX } from '../ui/icons'
+import { IconArrow, IconPlus, IconShuffle, IconX } from '../ui/icons'
 import { sfx, unlockAudio } from '../audio/sfx'
 
 export const TEAM_INFO: Record<TeamId, { name: string; tag: string; bg: string; text: string; sub: string }> = {
@@ -77,7 +77,7 @@ const RULES: { title: string; body: string }[] = [
   { title: 'Race the chai timer', body: 'You have 45 seconds. Every combo your team gets moves you one stop closer to Goa. Then grab the next pair.' },
   { title: 'Never brain-fart', body: 'It’s not just umm. Uhh, err, hmm and every filler on your group’s list (like, basically, matlab, mhanje…) is a slip. So is saying any part of a card word.' },
   { title: 'SEETI!', body: 'The other team listens. Catch a slip, shout SEETI, and the other team moves one stop forward instead.' },
-  { title: 'Pay at the Toll Nakas', body: 'Before the game, each team secretly plants Pabandi cards (house rules) on the other. Reach a Toll Naka and your next Pabandi unlocks, for the rest of the game.' },
+  { title: 'Pay at the Toll Nakas', body: 'Each team is secretly dealt three Pabandi cards (house rules), like “stand on one leg” or “talk like a news anchor”. Reach a Toll Naka and your next one unlocks, for the rest of the game.' },
   { title: 'Survive the Ghat Section', body: 'On the last three stops before Goa, a slip also slides you back one stop.' },
   { title: 'First to Goa wins', body: 'The first team past the last stop wins. Goa pahunch gaye!' },
 ]
@@ -125,7 +125,7 @@ export function Players() {
   }
   return (
     <Screen>
-      <Header title="Who’s playing?" sub="Add everyone in the room · 4 to 10 players" step="Step 1 of 5" onBack={() => go('home')} />
+      <Header title="Who’s playing?" sub="Add everyone in the room · 4 to 10 players" step="Step 1 of 4" onBack={() => go('home')} />
       <section className="flex flex-col gap-4 px-5 py-5">
         <form className="flex flex-col gap-1.5" onSubmit={(e) => { e.preventDefault(); submit() }}>
           <label htmlFor="pname" className="text-sm font-bold">Player name</label>
@@ -208,7 +208,7 @@ export function Teams() {
   const { go, splitTeams } = useGame()
   return (
     <Screen>
-      <Header title="Pick your sides" sub="Tap a name to move it · numbers show who describes first" step="Step 2 of 5" onBack={() => go('players')} />
+      <Header title="Pick your sides" sub="Tap a name to move it · numbers show who describes first" step="Step 2 of 4" onBack={() => go('players')} />
       <section className="flex flex-col px-5 pt-5">
         <TeamCard id="mirchi" />
         <div className="relative z-10 flex h-8 items-center justify-center">
@@ -245,7 +245,7 @@ export function Settings() {
   }
   return (
     <Screen>
-      <Header title="Game settings" sub="The defaults work great for 8–10 players" step="Step 3 of 5" onBack={() => go('teams')} />
+      <Header title="Game settings" sub="The defaults work great for 8–10 players" step="Step 3 of 4" onBack={() => go('teams')} />
       <section className="flex flex-col gap-4 px-5 py-5">
         <Field label="Chai timer" hint="seconds per turn">
           <Segmented label="Chai timer" value={s.turnSeconds} onChange={(v) => updateSettings({ turnSeconds: v })}
@@ -255,7 +255,7 @@ export function Settings() {
           <Segmented label="Road length" value={s.trackLength} onChange={(v) => updateSettings({ trackLength: v })}
             options={[{ value: 12, label: 'Quick · 12' }, { value: 18, label: 'Full · 18' }]} />
         </Field>
-        <Field label="Pabandi cards" hint="per team">
+        <Field label="Pabandi cards" hint="per team, dealt at random">
           <Segmented label="Pabandi cards per team" value={s.pabandiPerTeam} onChange={(v) => updateSettings({ pabandiPerTeam: v })}
             options={[0, 1, 2, 3].map((v) => ({ value: v as 0 | 1 | 2 | 3, label: String(v) }))} />
         </Field>
@@ -346,7 +346,7 @@ export function Fillers() {
   const total = CORE_FILLERS.length + fillers.length
   return (
     <Screen>
-      <Header title="Brain-fart words" sub="Not just umm! Agree on the filler words that count as a slip." step="Step 4 of 5" onBack={() => go('settings')} />
+      <Header title="Brain-fart words" sub="Not just umm! Agree on the filler words that count as a slip." step="Step 4 of 4" onBack={() => go('settings')} />
       <section className="flex flex-col gap-4 px-5 py-5">
         <div className="rounded-2xl border-[3px] border-kajal bg-kajal p-3.5 text-kagaz">
           <div className="text-sm font-extrabold tracking-wider text-haldi uppercase">Always a seeti</div>
@@ -403,74 +403,8 @@ export function Fillers() {
       <Footer>
         <span className="text-center text-sm font-extrabold">{total} words will trigger the seeti</span>
         <Btn big onClick={startSetupPlay}>
-          {game.settings.pabandiPerTeam > 0 ? 'Next: plant Pabandis' : 'Start the game'} <IconArrow />
+          Start the game <IconArrow />
         </Btn>
-      </Footer>
-    </Screen>
-  )
-}
-
-// ---------- Secret Pabandi draft ----------
-
-export function Draft() {
-  const { game, toggleDraftPick, lockDraft, redealDraft, go } = useGame()
-  const [revealed, setRevealed] = useState<TeamId | null>(null)
-  const draft = game.draft!
-  const target = rival(draft.picker)
-  const need = game.settings.pabandiPerTeam
-  const picker = TEAM_INFO[draft.picker]
-
-  if (revealed !== draft.picker) {
-    return (
-      <Screen className={`${picker.bg} ${picker.text}`}>
-        <div className="flex flex-1 flex-col items-center justify-center gap-5 px-8 text-center">
-          <span className="flex size-24 items-center justify-center rounded-full border-[3px] border-kajal bg-kagaz card-shadow"><TeamEmblem team={draft.picker} size={64} /></span>
-          <h1 className="outline-text font-display text-[40px] leading-none text-paper">{picker.name}, your pick</h1>
-          <p className="text-xl font-bold">Secretly plant {need} Pabandi {need === 1 ? 'card' : 'cards'} on {TEAM_INFO[target].name}.</p>
-          <div className="flex items-center gap-3 rounded-2xl border-[3px] border-kajal bg-kajal px-4 py-3 text-left text-kagaz">
-            <IconEyeOff size={30} className="shrink-0 text-lemon" />
-            <span className="text-base font-bold">{TEAM_INFO[target].name}: look away from the screen! No peeking.</span>
-          </div>
-        </div>
-        <div className="flex flex-col gap-3 px-6 pb-8">
-          <Btn big onClick={() => setRevealed(draft.picker)}>We’re ready, show the cards</Btn>
-          {draft.picker === 'mirchi' && <button type="button" onClick={() => go('fillers')} className="mx-auto min-h-11 font-bold underline">Back</button>}
-        </div>
-      </Screen>
-    )
-  }
-
-  return (
-    <Screen>
-      <Header title={`Plant on ${TEAM_INFO[target].name}`} sub={`Pick ${need}. They unlock at ${TEAM_INFO[target].name}’s Toll Nakas, in the order you pick.`}
-        step={`${picker.name}’s secret pick`} />
-      <section className="grid grid-cols-2 gap-3.5 px-4 py-4">
-        {draft.offers.map((id, i) => {
-          const card = cardById(id)
-          const slot = draft.picks.indexOf(id) + 1
-          return (
-            <motion.button key={id} type="button" aria-pressed={slot > 0}
-              initial={{ y: 30, opacity: 0, rotate: 0 }} animate={{ y: 0, opacity: 1, rotate: [-2, 1.5, 1, -1.5, -1, 2][i] }}
-              transition={{ delay: i * 0.06 }}
-              onClick={() => { sfx.tap(); toggleDraftPick(id) }}
-              className={`relative text-left ${slot > 0 ? 'outline-[3px] outline-offset-4 outline-sindoor' : ''}`}>
-              <Stamp card={card} />
-              {slot > 0 && (
-                <span className="absolute -top-2 -right-1.5 rotate-6 rounded-lg border-[2.5px] border-kajal bg-haldi px-2 py-0.5 font-display text-xs">Toll {slot}</span>
-              )}
-            </motion.button>
-          )
-        })}
-      </section>
-      <Footer>
-        <div className="flex items-center justify-between text-sm font-bold">
-          <span>{draft.picks.length} / {need} chosen</span>
-          <button type="button" disabled={draft.redealt} onClick={() => { sfx.tap(); redealDraft() }}
-            className="flex min-h-10 items-center gap-1.5 rounded-lg px-2 text-peacock underline underline-offset-2 disabled:text-muted disabled:no-underline">
-            <IconShuffle size={18} /> {draft.redealt ? 'Reshuffle used' : 'Deal new cards (once)'}
-          </button>
-        </div>
-        <Btn big disabled={draft.picks.length !== need} onClick={() => { setRevealed(null); lockDraft() }}><IconLock /> Lock them in</Btn>
       </Footer>
     </Screen>
   )

@@ -9,7 +9,7 @@ import { KIND_META } from '../data/pabandi'
 import { Btn, Chip, Screen, Stamp } from '../ui/kit'
 import { ChaiGlass, CookerIcon, CookerMascot, Garland, GoaScene, TeamEmblem, TollBooth } from '../ui/art'
 import { IconArrow, IconBolt, IconCheck, IconEye, IconMenu, IconPause, IconPlay, IconSkip, IconUndo, IconWarn } from '../ui/icons'
-import { sfx } from '../audio/sfx'
+import { sfx, unlockAudio } from '../audio/sfx'
 import { TEAM_INFO } from './Setup'
 import { Menu } from './Menu'
 
@@ -123,54 +123,54 @@ export function Pass() {
   const info = TEAM_INFO[team.id]
   const name = playerName(game, describerFor(team))
   const active = team.planted.slice(0, team.revealed).map(cardById)
-  const [progress, setProgress] = useState(0)
-  const raf = useRef<number | null>(null)
+  const [count, setCount] = useState<number | null>(null)
 
-  const startHold = () => {
-    const t0 = performance.now()
-    const step = () => {
-      const p = Math.min(1, (performance.now() - t0) / 700)
-      setProgress(p)
-      if (p >= 1) { raf.current = null; startTurn(); return }
-      raf.current = requestAnimationFrame(step)
-    }
-    raf.current = requestAnimationFrame(step)
-  }
-  const stopHold = () => {
-    if (raf.current) cancelAnimationFrame(raf.current)
-    raf.current = null
-    setProgress(0)
-  }
-  useEffect(() => () => { if (raf.current) cancelAnimationFrame(raf.current) }, [])
+  // Tap, then 3-2-1, then the words appear. (A press-and-hold fails on phones:
+  // iOS and Android cancel long touches to show their own menus.)
+  useEffect(() => {
+    if (count === null) return
+    if (count === 0) { startTurn(); return }
+    sfx.tick(count === 1)
+    const id = setTimeout(() => setCount(count - 1), 700)
+    return () => clearTimeout(id)
+  }, [count, startTurn])
 
   return (
     <Screen className={`${info.bg} ${info.text}`} dots={false}>
       <div className="rays opacity-30" style={{ background: 'repeating-conic-gradient(rgba(255,248,234,.35) 0 10deg, transparent 10deg 20deg)' }} />
       <div className="halftone-strong pointer-events-none absolute inset-0" />
       <div className="relative flex items-center justify-between px-5 pt-5">
-        <button type="button" onClick={() => go('board')} className="min-h-11 rounded-xl border-[3px] border-kajal bg-paper px-3 font-bold text-kajal">Board</button>
+        <button type="button" onClick={() => go('board')} disabled={count !== null}
+          className="min-h-11 rounded-xl border-[3px] border-kajal bg-paper px-3 font-bold text-kajal disabled:opacity-50">Board</button>
         <Chip className="bg-paper font-display text-kajal">Round {game.round}</Chip>
       </div>
       <div className="relative mt-8 flex flex-col items-center gap-1 px-5 text-center">
-        <span className="text-lg font-extrabold">Pass the phone to</span>
+        <span className="text-lg font-extrabold">{count === null ? 'Pass the phone to' : 'Get ready,'}</span>
         <h1 className="outline-text max-w-full font-display text-[60px] leading-[0.95] break-words text-paper">{name.toUpperCase()}</h1>
         <span className="text-lg font-extrabold">{info.name}’s Describer</span>
       </div>
 
       <div className="relative mx-auto mt-8 flex size-[210px] items-center justify-center">
-        <svg className="absolute inset-0 -rotate-90" viewBox="0 0 210 210" aria-hidden="true">
-          <circle cx="105" cy="105" r="100" fill="none" stroke="rgba(255,248,234,.5)" strokeWidth="10" />
-          <circle cx="105" cy="105" r="100" fill="none" stroke="#231815" strokeWidth="10" strokeDasharray={628} strokeDashoffset={628 * (1 - progress)} />
-        </svg>
-        <button type="button" aria-label={`${name}: press and hold to see your words`}
-          onPointerDown={startHold} onPointerUp={stopHold} onPointerLeave={stopHold} onPointerCancel={stopHold}
-          onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') startTurn() }}
-          onContextMenu={(e) => e.preventDefault()}
-          className="flex size-[180px] touch-none flex-col items-center justify-center gap-1 rounded-full border-4 border-kajal bg-haldi text-kajal shadow-[0_8px_0_#231815] select-none">
-          <IconEye size={44} />
-          <span className="font-display text-[17px] leading-tight">Hold to start</span>
-          <span className="text-[13px] font-bold">Only {name} looks!</span>
-        </button>
+        <AnimatePresence mode="popLayout">
+          {count === null ? (
+            <motion.button key="go" type="button" onClick={() => { unlockAudio(); setCount(3) }}
+              initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.6, opacity: 0 }}
+              whileTap={{ scale: 0.94 }}
+              aria-label={`${name}: tap to start your turn`}
+              className="flex size-[200px] touch-manipulation flex-col items-center justify-center gap-1 rounded-full border-4 border-kajal bg-haldi text-kajal shadow-[0_8px_0_#231815,0_0_0_12px_rgba(255,248,234,.5)] select-none [-webkit-touch-callout:none]">
+              <IconEye size={44} />
+              <span className="font-display text-xl leading-tight">Tap to start</span>
+              <span className="text-[13px] font-bold">Only {name} looks!</span>
+            </motion.button>
+          ) : (
+            <motion.div key={count} role="status" aria-live="assertive"
+              initial={{ scale: 1.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.6, opacity: 0, transition: { duration: 0.12 } }}
+              transition={{ type: 'spring', stiffness: 500, damping: 22 }}
+              className="flex size-[200px] items-center justify-center rounded-full border-4 border-kajal bg-paper text-kajal shadow-[0_8px_0_#231815]">
+              <span className="font-display text-[110px] leading-none">{count || 'GO'}</span>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       <div className="relative mt-auto flex flex-col gap-3 px-5 pt-6 pb-6">
@@ -194,8 +194,8 @@ export function Pass() {
                       {c.title}
                     </span>
                     {game.settings.twists.jugaad && (team.jugaadLeft > 0 || off) && (
-                      <button type="button" onClick={() => { sfx.tap(); useJugaad(off ? null : c.id) }}
-                        className={`flex min-h-9 items-center gap-1 rounded-lg border-2 border-kajal px-2 text-[13px] font-extrabold ${off ? 'bg-paper' : 'bg-haldi'}`}>
+                      <button type="button" disabled={count !== null} onClick={() => { sfx.tap(); useJugaad(off ? null : c.id) }}
+                        className={`flex min-h-10 items-center gap-1 rounded-lg border-2 border-kajal px-2.5 text-[13px] font-extrabold ${off ? 'bg-paper' : 'bg-haldi'}`}>
                         <IconBolt size={14} />{off ? 'Undo' : 'Jugaad'}
                       </button>
                     )}
@@ -205,6 +205,9 @@ export function Pass() {
             </ul>
             {game.settings.twists.jugaad && team.jugaadLeft > 0 && <p className="mt-1.5 text-xs font-semibold text-muted">Jugaad: switch one rule off for this turn only. Once per game.</p>}
           </div>
+        )}
+        {active.length === 0 && team.planted.length > 0 && (
+          <p className="text-center text-sm font-bold">A secret Pabandi waits at your next Toll Naka…</p>
         )}
       </div>
     </Screen>
@@ -268,21 +271,21 @@ export function Turn() {
         <span className="text-sm font-extrabold">Stop {team.position}{nextToll ? ` · toll at ${nextToll}` : ` · Goa at ${finishLine(game.settings)}`}</span>
       </div>
 
-      <div className="relative flex flex-1 flex-col justify-center px-6 py-4">
+      <div className="relative flex flex-1 flex-col justify-center px-6 py-3">
         <AnimatePresence mode="popLayout">
           <motion.div key={turn.pair.words.join('|')} initial={{ x: 220, opacity: 0, rotate: 8 }} animate={{ x: 0, opacity: 1, rotate: 0 }}
             exit={{ x: -260, opacity: 0, rotate: -10 }} transition={{ type: 'spring', stiffness: 380, damping: 30 }}
             className="flex flex-col items-stretch">
             {turn.pair.dhamaka && (
-              <span className="mx-auto mb-4 -rotate-2 rounded-lg border-[3px] border-kajal bg-rani px-3 py-1 font-display text-sm">Dhamaka! Three words · +2</span>
+              <span className="mx-auto mb-7 -rotate-2 rounded-lg border-[3px] border-kajal bg-rani px-3 py-1 font-display text-sm">Dhamaka! Three words · +2</span>
             )}
-            <WordCard label="A · Kaisa?" sub="describing word" word={a} tone="haldi" tilt={-1.5} />
-            {c && <><Plus /><WordCard label="A2 · Kaisa?" sub="describing word" word={b} tone="haldi" tilt={1} /></>}
-            <Plus />
-            <WordCard label="B · Kya?" sub="thing" word={c ?? b} tone="peacock" tilt={1.2} />
+            <WordCard label="A · Kaisa?" sub="describing word" word={a} tone="haldi" tilt={-1.5} compact={!!c} />
+            {c && <><Plus compact /><WordCard label="A2 · Kaisa?" sub="describing word" word={b} tone="haldi" tilt={1} compact /></>}
+            <Plus compact={!!c} />
+            <WordCard label="B · Kya?" sub="thing" word={c ?? b} tone="peacock" tilt={1.2} compact={!!c} />
           </motion.div>
         </AnimatePresence>
-        <p className="mt-3.5 text-center text-sm font-bold text-muted">Clue them in order. Team must say all the words, in order.</p>
+        <p className="mt-3 text-center text-sm font-bold text-muted">{c ? 'Clue all three in order. Team must say them in order.' : 'Clue A, then B. Team must say both words, in order.'}</p>
       </div>
 
       <div className="flex flex-wrap items-center gap-1.5 px-5 pb-3">
@@ -320,19 +323,22 @@ export function Turn() {
   )
 }
 
-function WordCard({ label, sub, word, tone, tilt }: { label: string; sub: string; word: string; tone: 'haldi' | 'peacock'; tilt: number }) {
+function WordCard({ label, sub, word, tone, tilt, compact = false }: {
+  label: string; sub: string; word: string; tone: 'haldi' | 'peacock'; tilt: number; compact?: boolean
+}) {
+  const size = compact ? (word.length > 12 ? 'text-[28px]' : 'text-[34px]') : word.length > 12 ? 'text-[38px]' : 'text-[48px]'
   return (
-    <div className="relative rounded-[22px] border-[3px] border-kajal bg-paper px-4 pt-8 pb-5 text-center shadow-[5px_6px_0_#231815]" style={{ transform: `rotate(${tilt}deg)` }}>
+    <div className={`relative rounded-[22px] border-[3px] border-kajal bg-paper px-4 text-center shadow-[5px_6px_0_#231815] ${compact ? 'pt-6 pb-3' : 'pt-8 pb-5'}`} style={{ transform: `rotate(${tilt}deg)` }}>
       <span className={`absolute -top-4 ${tone === 'haldi' ? 'left-4 bg-haldi' : 'right-4 bg-peacock text-kagaz'} rounded-lg border-[2.5px] border-kajal px-3 py-0.5 font-display text-[15px]`}>
-        {label} <span className="font-body text-xs font-bold">· {sub}</span>
+        {label}{!compact && <span className="font-body text-xs font-bold"> · {sub}</span>}
       </span>
-      <div className={`font-extrabold leading-none break-words ${word.length > 12 ? 'text-[38px]' : 'text-[48px]'}`}>{word}</div>
+      <div className={`font-extrabold leading-none break-words ${size}`}>{word}</div>
     </div>
   )
 }
 
-const Plus = () => (
-  <span className="relative z-10 mx-auto -my-2 flex size-11 items-center justify-center rounded-full border-[3px] border-kajal bg-sindoor font-display text-2xl text-kagaz">+</span>
+const Plus = ({ compact = false }: { compact?: boolean }) => (
+  <span className={`relative z-10 mx-auto flex items-center justify-center rounded-full border-[3px] border-kajal bg-sindoor font-display text-kagaz ${compact ? '-my-1.5 size-9 text-xl' : '-my-2 size-11 text-2xl'}`}>+</span>
 )
 
 function SmallBtn({ children, onClick, disabled, tone = 'paper' }: { children: React.ReactNode; onClick: () => void; disabled?: boolean; tone?: 'paper' | 'haldi' }) {
@@ -429,8 +435,8 @@ export function Toll() {
         transition={{ delay: 0.7, type: 'spring', stiffness: 300, damping: 16 }}>
         <Stamp card={card} size="lg" />
         <div className="absolute -right-7 -bottom-5 flex size-[92px] rotate-[14deg] flex-col items-center justify-center rounded-full border-[3px] border-dashed border-kajal bg-sindoor/95 text-center text-paper">
-          <span className="text-[11px] leading-tight font-extrabold">Planted by</span>
-          <span className="font-display text-sm leading-tight">{TEAM_INFO[rival(reveal.team)].name.replace('Team ', '')}</span>
+          <span className="text-[11px] leading-tight font-extrabold">Dealt by</span>
+          <span className="font-display text-sm leading-tight">Kismat</span>
         </div>
       </motion.div>
 

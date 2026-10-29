@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
-  addPlayer, closeOverlay, correct, dealOffers, galatSeeti, lockDraft, newGame, nextTurn, skip, slip,
-  splitTeams, startSetupPlay, startTurn, stealResult, timeUp, toggleDraftPick, undo, updateSettings,
+  addPlayer, closeOverlay, correct, dealPabandi, galatSeeti, newGame, nextTurn, skip, slip,
+  splitTeams, startSetupPlay, startTurn, stealResult, timeUp, undo, updateSettings,
   cardById, remainingMs, activePabandi, useJugaad, type Game, type Rng,
 } from './engine'
-import { SPEECH_KINDS, PHYSICAL_KINDS, PABANDI } from '../data/pabandi'
+import { PABANDI, NOT_DEALT, DEAL_SLOTS } from '../data/pabandi'
 
 const seeded = (seed: number): Rng => () => {
   seed |= 0; seed = (seed + 0x6d2b79f5) | 0
@@ -21,12 +21,7 @@ function setup(patch: Partial<Game['settings']> = {}, seed = 1): Game {
   NAMES.forEach((n, i) => { g = addPlayer(g, n, `p${i}`) })
   g = splitTeams(g, rng)
   g = updateSettings(g, patch)
-  g = startSetupPlay(g, rng)
-  while (g.phase === 'draft') {
-    for (const id of g.draft!.offers.slice(0, g.settings.pabandiPerTeam)) g = toggleDraftPick(g, id)
-    g = lockDraft(g, rng)
-  }
-  return g
+  return startSetupPlay(g, rng)
 }
 
 const rng = seeded(42)
@@ -45,28 +40,41 @@ describe('setup', () => {
     expect(g.teams.nimbu.playerIds).toHaveLength(4)
   })
 
-  it('plants 3 Pabandis on each team after both drafts', () => {
+  it('deals 3 secret Pabandis to each team and goes straight to the board', () => {
     const g = setup()
     expect(g.phase).toBe('board')
     expect(g.teams.mirchi.planted).toHaveLength(3)
     expect(g.teams.nimbu.planted).toHaveLength(3)
   })
 
-  it('skips the draft when Pabandi count is 0', () => {
+  it('deals none when Pabandi count is 0', () => {
     const g = setup({ pabandiPerTeam: 0 })
     expect(g.phase).toBe('board')
     expect(g.teams.mirchi.planted).toHaveLength(0)
   })
 
-  it('deals balanced offers: 2+ speech rules, at most 2 physical, at most 1 letter', () => {
-    for (let s = 0; s < 200; s++) {
-      const offers = dealOffers(seeded(s)).map(cardById)
-      expect(offers).toHaveLength(6)
-      expect(new Set(offers.map((c) => c.id)).size).toBe(6)
-      expect(offers.filter((c) => SPEECH_KINDS.includes(c.kind)).length).toBeGreaterThanOrEqual(2)
-      expect(offers.filter((c) => PHYSICAL_KINDS.includes(c.kind)).length).toBeLessThanOrEqual(2)
-      expect(offers.filter((c) => c.kind === 'letter').length).toBeLessThanOrEqual(1)
+  it('always deals a physical action, a performance and a speech rule, in toll order', () => {
+    for (let seed = 0; seed < 300; seed++) {
+      const dealt = dealPabandi(seeded(seed), 3)
+      const all = [...dealt.mirchi, ...dealt.nimbu]
+      expect(new Set(all).size).toBe(6)
+      for (const hand of [dealt.mirchi, dealt.nimbu]) {
+        const kinds = hand.map((id) => cardById(id).kind)
+        kinds.forEach((k, i) => expect(DEAL_SLOTS[i]).toContain(k))
+        expect(['body', 'after']).toContain(kinds[0])
+        hand.forEach((id) => expect(NOT_DEALT.has(id)).toBe(false))
+      }
     }
+  })
+
+  it('a one-card game still gets a physical action card', () => {
+    const dealt = dealPabandi(seeded(5), 1)
+    expect(dealt.mirchi).toHaveLength(1)
+    expect(['body', 'after']).toContain(cardById(dealt.nimbu[0]).kind)
+  })
+
+  it('every NOT_DEALT id is a real card', () => {
+    NOT_DEALT.forEach((id) => expect(PABANDI.some((c) => c.id === id)).toBe(true))
   })
 
   it('has unique Pabandi ids', () => {

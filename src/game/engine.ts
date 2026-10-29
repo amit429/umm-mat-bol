@@ -2,7 +2,7 @@
 // Time and randomness come in as arguments so the rules stay testable.
 
 import { KAISA, KYA, FAMILY_UNSAFE, type PackId } from '../data/words'
-import { PABANDI, SPEECH_KINDS, PHYSICAL_KINDS, type PabandiCard } from '../data/pabandi'
+import { PABANDI, DEAL_SLOTS, NOT_DEALT, type PabandiCard } from '../data/pabandi'
 import { DEFAULT_FILLERS } from '../data/fillers'
 
 export type TeamId = 'mirchi' | 'nimbu'
@@ -67,14 +67,12 @@ export interface Turn {
   pairShownAt: number
 }
 
-export interface Draft { picker: TeamId; offers: string[]; picks: string[]; redealt: boolean }
-
 export interface TollReveal { team: TeamId; cardId: string; toll: number }
 
 export interface PlayerStats { slips: number; pairs: number; bestMs: number | null }
 
 export type Phase =
-  | 'home' | 'rules' | 'players' | 'teams' | 'settings' | 'fillers' | 'draft'
+  | 'home' | 'rules' | 'players' | 'teams' | 'settings' | 'fillers'
   | 'board' | 'pass' | 'turn' | 'seeti' | 'toll' | 'steal' | 'summary' | 'winner'
 
 export interface Game {
@@ -84,7 +82,6 @@ export interface Game {
   teams: Record<TeamId, Team>
   currentTeam: TeamId
   round: number
-  draft: Draft | null
   turn: Turn | null
   decks: { a: string[]; b: string[]; ai: number; bi: number }
   tolls: TollReveal[]
@@ -118,7 +115,6 @@ export function newGame(): Game {
     teams: { mirchi: emptyTeam('mirchi'), nimbu: emptyTeam('nimbu') },
     currentTeam: 'mirchi',
     round: 1,
-    draft: null,
     turn: null,
     decks: { a: [], b: [], ai: 0, bi: 0 },
     tolls: [],
@@ -262,60 +258,36 @@ function drawPair(g: Game, rng: Rng): Game {
   return { ...g, decks: { a, b, ai, bi }, turn }
 }
 
-// ---------- Pabandi draft ----------
+// ---------- Pabandi deal ----------
 
-export function dealOffers(rng: Rng, count = 6): string[] {
-  const pool = shuffle(PABANDI, rng)
-  const speech = pool.filter((c) => SPEECH_KINDS.includes(c.kind))
-  const firstLetter = speech.find((c) => c.kind === 'letter')
-  const picked: PabandiCard[] = speech.filter((c) => c.kind !== 'letter' || c === firstLetter).slice(0, 2)
-  for (const c of pool) {
-    if (picked.length >= count) break
-    if (picked.includes(c)) continue
-    const physical = picked.filter((p) => PHYSICAL_KINDS.includes(p.kind)).length
-    if (PHYSICAL_KINDS.includes(c.kind) && physical >= 2) continue
-    if (c.kind === 'letter' && picked.some((p) => p.kind === 'letter')) continue
-    if (c.kind === 'voice' && picked.filter((p) => p.kind === 'voice').length >= 2) continue
-    picked.push(c)
+/**
+ * Deal each team its secret Pabandi cards at random, one per slot in DEAL_SLOTS:
+ * always a physical action first, then a performance, then a speech rule.
+ * The two teams never get the same card.
+ */
+export function dealPabandi(rng: Rng, count: number): Record<TeamId, string[]> {
+  const pool = shuffle(PABANDI.filter((c) => !NOT_DEALT.has(c.id)), rng)
+  const used = new Set<string>()
+  const take = (kinds: PabandiCard['kind'][]): string => {
+    const card = pool.find((c) => kinds.includes(c.kind) && !used.has(c.id))!
+    used.add(card.id)
+    return card.id
   }
-  return shuffle(picked, rng).map((c) => c.id)
+  const hand = () => DEAL_SLOTS.slice(0, count).map(take)
+  return { mirchi: hand(), nimbu: hand() }
 }
 
 export function startSetupPlay(g: Game, rng: Rng): Game {
-  const teams = {
-    mirchi: { ...g.teams.mirchi, position: 0, planted: [], revealed: 0, nextDescriber: 0, jugaadLeft: g.settings.twists.jugaad ? 1 : 0, jugaadOff: null },
-    nimbu: { ...g.teams.nimbu, position: 0, planted: [], revealed: 0, nextDescriber: 0, jugaadLeft: g.settings.twists.jugaad ? 1 : 0, jugaadOff: null },
-  }
-  const base: Game = {
-    ...g, teams, round: 1, currentTeam: 'mirchi', turn: null, tolls: [], winner: null, stats: {}, history: [], lastSlip: null,
+  const dealt = dealPabandi(rng, g.settings.pabandiPerTeam)
+  const fresh = (id: TeamId): Team => ({
+    ...g.teams[id], position: 0, planted: dealt[id], revealed: 0, nextDescriber: 0,
+    jugaadLeft: g.settings.twists.jugaad ? 1 : 0, jugaadOff: null,
+  })
+  return {
+    ...g, phase: 'board', teams: { mirchi: fresh('mirchi'), nimbu: fresh('nimbu') },
+    round: 1, currentTeam: 'mirchi', turn: null, tolls: [], winner: null, stats: {}, history: [], lastSlip: null,
     decks: buildDecks(g.settings, rng),
   }
-  if (g.settings.pabandiPerTeam === 0) return { ...base, phase: 'board', draft: null }
-  return { ...base, phase: 'draft', draft: { picker: 'mirchi', offers: dealOffers(rng), picks: [], redealt: false } }
-}
-
-/** Each team may swap its six offers for a fresh hand once. */
-export function redealDraft(g: Game, rng: Rng): Game {
-  if (!g.draft || g.draft.redealt) return g
-  return { ...g, draft: { ...g.draft, offers: dealOffers(rng), picks: [], redealt: true } }
-}
-
-export function toggleDraftPick(g: Game, cardId: string): Game {
-  if (!g.draft) return g
-  const { picks } = g.draft
-  const max = g.settings.pabandiPerTeam
-  const next = picks.includes(cardId) ? picks.filter((p) => p !== cardId) : picks.length < max ? [...picks, cardId] : picks
-  return { ...g, draft: { ...g.draft, picks: next } }
-}
-
-export function lockDraft(g: Game, rng: Rng): Game {
-  if (!g.draft || g.draft.picks.length !== g.settings.pabandiPerTeam) return g
-  const target = rival(g.draft.picker)
-  const teams = { ...g.teams, [target]: { ...g.teams[target], planted: g.draft.picks } } as Record<TeamId, Team>
-  if (g.draft.picker === 'mirchi') {
-    return { ...g, teams, draft: { picker: 'nimbu', offers: dealOffers(rng), picks: [], redealt: false } }
-  }
-  return { ...g, teams, draft: null, phase: 'board' }
 }
 
 // ---------- Moves, tolls, winning ----------

@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useGame } from './game/store'
-import { Draft, Fillers, Home, Players, Rules, Settings, Teams } from './screens/Setup'
+import { Fillers, Home, Players, Rules, Settings, Teams } from './screens/Setup'
 import { Board, Pass, Seeti, Steal, Summary, Toll, Turn, Winner } from './screens/Play'
 import { unlockAudio } from './audio/sfx'
 
@@ -23,7 +23,6 @@ export default function App() {
     case 'teams': return <Teams />
     case 'settings': return <Settings />
     case 'fillers': return <Fillers />
-    case 'draft': return <Draft />
     case 'board': return <Board />
     case 'pass': return <Pass />
     case 'turn': return <Turn />
@@ -32,5 +31,6 @@ export default function App() {
     case 'steal': return <Steal />
     case 'summary': return <Summary />
     case 'winner': return <Winner />
+    default: return <Home />
   }
 }
