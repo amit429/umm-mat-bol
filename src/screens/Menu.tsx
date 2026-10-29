@@ -2,6 +2,9 @@ import { useState } from 'react'
 import { motion } from 'motion/react'
 import { useGame } from '../game/store'
 import { CORE_FILLERS } from '../data/fillers'
+import { KIND_META } from '../data/pabandi'
+import { cardById, type TeamId } from '../game/engine'
+import { TEAM_INFO } from './Setup'
 import { isMuted, setMuted, sfx } from '../audio/sfx'
 import { IconMute, IconSound, IconX } from '../ui/icons'
 
@@ -34,6 +37,29 @@ export function Menu({ onClose }: { onClose: () => void }) {
           <div className="text-sm font-extrabold">Brain-fart words this game ({fillers.length})</div>
           <div className="mt-1.5 flex max-h-28 flex-wrap gap-1.5 overflow-y-auto">
             {fillers.map((w) => <span key={w} className="rounded-full bg-kajal px-2.5 py-0.5 text-[13px] font-bold text-kagaz">{w}</span>)}
+          </div>
+        </div>
+
+        <div className="mt-3 rounded-2xl border-[2.5px] border-kajal bg-paper p-3.5">
+          <div className="text-sm font-extrabold">Pabandi in play</div>
+          <div className="mt-1.5 flex max-h-40 flex-col gap-2.5 overflow-y-auto">
+            {(['mirchi', 'nimbu'] as TeamId[]).map((t) => {
+              const cards = game.teams[t].planted.slice(0, game.teams[t].revealed).map(cardById)
+              return (
+                <div key={t}>
+                  <div className="text-[13px] font-extrabold text-muted">{TEAM_INFO[t].name}</div>
+                  {cards.length === 0 && <div className="text-sm font-semibold text-muted">Nothing unlocked yet</div>}
+                  <ul className="flex flex-col gap-1">
+                    {cards.map((c) => (
+                      <li key={c.id} className="text-sm leading-snug font-semibold">
+                        <span className="mr-1 rounded px-1.5 font-extrabold" style={{ background: KIND_META[c.kind].color, color: KIND_META[c.kind].ink }}>{c.title}</span>
+                        {c.rule}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )
+            })}
           </div>
         </div>
 

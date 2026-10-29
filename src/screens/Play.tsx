@@ -12,12 +12,14 @@ import { IconArrow, IconBolt, IconCheck, IconEye, IconMenu, IconPause, IconPlay,
 import { sfx, unlockAudio } from '../audio/sfx'
 import { TEAM_INFO } from './Setup'
 import { Menu } from './Menu'
+import { PabandiSheet } from './PabandiSheet'
 
 // ---------- Board ----------
 
 export function Board() {
   const { game, beginTurn } = useGame()
   const [menu, setMenu] = useState(false)
+  const [sheet, setSheet] = useState<TeamId | null>(null)
   const s = game.settings
   const tolls = tollStops(s)
   const rows = Array.from({ length: s.trackLength }, (_, i) => s.trackLength - i)
@@ -47,7 +49,7 @@ export function Board() {
             : ghat ? 'repeating-linear-gradient(135deg,#5A3B2A 0 10px,#4A2F22 10px 20px)' : '#3B3330'
           const side = n % 2 ? 'justify-start' : 'justify-end'
           return (
-            <div key={n} className="grid h-[calc((100dvh-392px)/var(--rows))] max-h-8 min-h-6 grid-cols-[34px_1fr_10px_1fr_44px] items-stretch"
+            <div key={n} className="grid h-[calc((100dvh-424px)/var(--rows))] max-h-8 min-h-6 grid-cols-[34px_1fr_10px_1fr_44px] items-stretch"
               style={{ ['--rows' as string]: s.trackLength }}>
               <div className="flex items-center justify-center">
                 {ghat ? <IconWarn size={20} /> : <span className="font-display text-xs text-muted">{n}</span>}
@@ -74,14 +76,25 @@ export function Board() {
       <div className="border-t-[3px] border-kajal bg-paper px-5 pt-3.5 pb-[max(20px,env(safe-area-inset-bottom))]">
         <div className="mb-3 flex gap-2.5">
           {(['mirchi', 'nimbu'] as TeamId[]).map((t) => {
-            const active = activePabandi(game.teams[t])
+            const team = game.teams[t]
+            const shown = team.planted.slice(0, team.revealed).map(cardById)
+            const nextStop = tollStops(s)[team.revealed]
             return (
-              <div key={t} className={`flex-1 rounded-xl border-[2.5px] border-kajal px-2.5 py-1.5 ${TEAM_INFO[t].bg} ${TEAM_INFO[t].text}`}>
-                <div className="text-[13px] font-extrabold">{TEAM_INFO[t].name.replace('Team ', '')} · stop {pos[t]}</div>
-                <div className="truncate text-xs font-semibold">
-                  {active.length ? `Pabandi: ${active.map((c) => c.title).join(', ')}` : 'No Pabandi yet'}
-                </div>
-              </div>
+              <button key={t} type="button" onClick={() => { sfx.tap(); setSheet(t) }}
+                aria-label={`${TEAM_INFO[t].name}: view Pabandi cards`}
+                className={`flex min-h-[76px] flex-1 flex-col items-start gap-1 rounded-xl border-[2.5px] border-kajal px-2.5 py-1.5 text-left shadow-[2px_3px_0_#231815] ${TEAM_INFO[t].bg} ${TEAM_INFO[t].text}`}>
+                <span className="flex w-full items-center justify-between gap-1 text-[13px] font-extrabold">
+                  {TEAM_INFO[t].name.replace('Team ', '')} · stop {pos[t]}
+                  <span className="rounded-md border-2 border-kajal bg-paper px-1.5 text-[11px] leading-tight text-kajal">Rules</span>
+                </span>
+                <span className="flex flex-wrap gap-1">
+                  {shown.map((c) => (
+                    <span key={c.id} className="rounded-full border-2 border-kajal px-1.5 text-[11px] leading-tight font-extrabold"
+                      style={{ background: KIND_META[c.kind].color, color: KIND_META[c.kind].ink }}>{c.title}</span>
+                  ))}
+                  {shown.length === 0 && <span className="text-xs font-semibold">{team.planted.length ? `First Pabandi at stop ${nextStop}` : 'No Pabandi this game'}</span>}
+                </span>
+              </button>
             )
           })}
         </div>
@@ -92,6 +105,7 @@ export function Board() {
         </button>
       </div>
       <AnimatePresence>{menu && <Menu onClose={() => setMenu(false)} />}</AnimatePresence>
+      <AnimatePresence>{sheet && <PabandiSheet initial={sheet} onClose={() => setSheet(null)} />}</AnimatePresence>
     </Screen>
   )
 }
@@ -241,6 +255,7 @@ export function Turn() {
   const nextToll = tollStops(game.settings).find((t, i) => t > team.position && i < team.planted.length)
   const rules = activePabandi(team)
   const [menu, setMenu] = useState(false)
+  const [sheet, setSheet] = useState(false)
 
   useEffect(() => {
     if (!running) return
@@ -288,14 +303,16 @@ export function Turn() {
         <p className="mt-3 text-center text-sm font-bold text-muted">{c ? 'Clue all three in order. Team must say them in order.' : 'Clue A, then B. Team must say both words, in order.'}</p>
       </div>
 
-      <div className="flex flex-wrap items-center gap-1.5 px-5 pb-3">
+      <button type="button" onClick={() => { sfx.tap(); setSheet(true) }} aria-label="View all rules for this turn"
+        className="mx-5 mb-3 flex flex-wrap items-center gap-1.5 rounded-xl border-2 border-dashed border-kajal/50 px-2 py-1.5 text-left">
         <span className="text-[13px] font-extrabold">Banned:</span>
         <span className="rounded-full border-2 border-kajal bg-kajal px-2.5 py-0.5 text-xs font-bold text-kagaz">umm & fillers</span>
         <span className="rounded-full border-2 border-kajal bg-kajal px-2.5 py-0.5 text-xs font-bold text-kagaz">card words</span>
         {rules.map((r) => (
           <span key={r.id} className="rounded-full border-2 border-kajal px-2.5 py-0.5 text-xs font-bold" style={{ background: KIND_META[r.kind].color, color: KIND_META[r.kind].ink }}>{r.title}</span>
         ))}
-      </div>
+        <span className="ml-auto text-xs font-extrabold text-peacock underline underline-offset-2">{rules.length ? 'See rules' : 'Pabandi'}</span>
+      </button>
 
       <div className="flex gap-3.5 px-5">
         <button type="button" onClick={correct} disabled={!running}
@@ -319,6 +336,7 @@ export function Turn() {
         <SmallBtn onClick={undo} disabled={game.history.length === 0}><IconUndo size={18} /> Undo</SmallBtn>
       </div>
       <AnimatePresence>{menu && <Menu onClose={() => setMenu(false)} />}</AnimatePresence>
+      <AnimatePresence>{sheet && <PabandiSheet initial={turn.team} onClose={() => setSheet(false)} />}</AnimatePresence>
     </Screen>
   )
 }

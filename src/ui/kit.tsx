@@ -68,18 +68,21 @@ export function Chip({ children, className = '' }: { children: ReactNode; classN
 }
 
 /** A Pabandi rule card, drawn as a perforated postage stamp. */
-export function Stamp({ card, size = 'md', className = '' }: { card: PabandiCard; size?: 'sm' | 'md' | 'lg'; className?: string }) {
+export function Stamp({ card, size = 'md', className = '' }: { card: PabandiCard; size?: 'sm' | 'md' | 'wide' | 'lg'; className?: string }) {
   const meta = KIND_META[card.kind]
   const big = size === 'lg'
+  const box = { lg: 'min-h-[230px] px-5 py-6', wide: 'min-h-[118px] px-4 py-3', md: 'min-h-[150px] px-2.5 py-3', sm: 'min-h-[86px] px-2 py-2' }[size]
+  const title = { lg: 'text-[34px]', wide: 'text-[26px]', md: 'text-xl', sm: 'text-base' }[size]
+  const rule = { lg: 'text-lg', wide: 'text-base', md: 'text-[12.5px]', sm: '' }[size]
   return (
     <div className={`stamp ${className}`}>
       <div
-        className={`flex flex-col items-center justify-center gap-1 border-2 border-kajal text-center ${big ? 'min-h-[230px] px-5 py-6' : size === 'sm' ? 'min-h-[86px] px-2 py-2' : 'min-h-[150px] px-2.5 py-3'}`}
+        className={`flex flex-col items-center justify-center gap-1 border-2 border-kajal text-center ${box}`}
         style={{ background: meta.color, color: meta.ink }}
       >
-        <span className={`font-extrabold tracking-wider uppercase ${big ? 'text-sm' : 'text-[10.5px]'}`}>{meta.label}</span>
-        <span className={`font-display leading-none ${big ? 'text-[34px]' : size === 'sm' ? 'text-base' : 'text-xl'}`}>{card.title}</span>
-        {size !== 'sm' && <span className={`font-bold leading-tight ${big ? 'text-lg' : 'text-[12.5px]'}`}>{card.rule}</span>}
+        <span className={`font-extrabold tracking-wider uppercase ${big || size === 'wide' ? 'text-xs' : 'text-[10.5px]'}`}>{meta.label}</span>
+        <span className={`font-display leading-none ${title}`}>{card.title}</span>
+        {size !== 'sm' && <span className={`font-bold leading-tight ${rule}`}>{card.rule}</span>}
       </div>
     </div>
   )
