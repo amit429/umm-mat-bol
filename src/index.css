@@ -1,0 +1,90 @@
+@import "tailwindcss";
+
+@theme {
+  --color-sindoor: #C8242B;
+  --color-sindoor-dark: #B21E25;
+  --color-haldi: #F5B820;
+  --color-peacock: #0E6C6A;
+  --color-rani: #E0457B;
+  --color-nimbu: #8DBA2E;
+  --color-lemon: #C9DC3B;
+  --color-kagaz: #F7ECD5;
+  --color-paper: #FFF8EA;
+  --color-blush: #FBE3C6;
+  --color-kajal: #231815;
+  --color-muted: #4A3B33;
+  --color-leaf: #2F8F46;
+
+  --font-display: 'Bungee', system-ui, sans-serif;
+  --font-body: 'Baloo 2', system-ui, sans-serif;
+  --font-deva: 'Yatra One', 'Baloo 2', serif;
+}
+
+@layer base {
+  html, body, #root { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--color-kajal);
+    color: var(--color-kajal);
+    font-family: var(--font-body);
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior: none;
+  }
+  button { font-family: inherit; cursor: pointer; }
+  button:focus-visible, a:focus-visible, input:focus-visible {
+    outline: 3px solid var(--color-peacock);
+    outline-offset: 3px;
+  }
+}
+
+/* Printed-paper dots, like the halftone in Indian pop posters. */
+@utility halftone {
+  background-image: radial-gradient(rgba(35, 24, 21, 0.09) 1.1px, transparent 1.4px);
+  background-size: 6px 6px;
+}
+@utility halftone-strong {
+  background-image: radial-gradient(rgba(35, 24, 21, 0.16) 1.1px, transparent 1.4px);
+  background-size: 6px 6px;
+}
+/* Truck-art zigzag border. */
+@utility zigzag {
+  background:
+    linear-gradient(135deg, var(--color-haldi) 25%, transparent 25%) -11px 0 / 22px 22px,
+    linear-gradient(225deg, var(--color-haldi) 25%, transparent 25%) -11px 0 / 22px 22px,
+    var(--color-peacock);
+}
+@utility truck-blocks {
+  background: repeating-linear-gradient(90deg, var(--color-haldi) 0 26px, var(--color-peacock) 26px 52px, var(--color-rani) 52px 78px, var(--color-kagaz) 78px 104px);
+}
+/* Perforated postage-stamp edge. */
+@utility stamp {
+  padding: 9px;
+  background: radial-gradient(circle, transparent 0 4.5px, var(--color-paper) 5px) -6px -6px / 12px 12px;
+  filter: drop-shadow(3px 4px 0 var(--color-kajal));
+}
+@utility checkered {
+  background: repeating-conic-gradient(var(--color-kajal) 0 25%, var(--color-paper) 0 50%) 0 0 / 12px 12px;
+}
+@utility outline-text {
+  -webkit-text-stroke: 3px var(--color-kajal);
+  paint-order: stroke fill;
+  text-shadow: 4px 5px 0 var(--color-kajal);
+}
+@utility pop {
+  box-shadow: 0 6px 0 var(--color-kajal);
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+  &:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 2px 0 var(--color-kajal); }
+}
+@utility card-shadow { box-shadow: 4px 5px 0 var(--color-kajal); }
+
+@keyframes rays-spin { to { transform: rotate(360deg); } }
+.rays {
+  position: absolute;
+  left: 50%; top: 40%;
+  width: 1600px; height: 1600px;
+  margin: -800px 0 0 -800px;
+  animation: rays-spin 40s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .rays { animation: none; }
+}
