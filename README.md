@@ -13,6 +13,10 @@
   4–10 players · 2 teams · 1 phone · no internet needed
 </p>
 
+<p align="center">
+  <a href="https://umm-mat-bol.vercel.app"><b>▶ Play now at umm-mat-bol.vercel.app</b></a>
+</p>
+
 ---
 
 ## Screenshots
